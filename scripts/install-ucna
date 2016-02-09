@@ -1,0 +1,111 @@
+#!/bin/sh
+
+##
+#
+# Adapted from CUORE shell script by Kevin Peter Hickerson
+#
+# Created: Jan 12, 2015
+#
+##
+
+
+#
+# 1. Environment preparation
+#
+echo "Checking that we have everything we need..."
+for CMD in cmake make tar root nproc install
+do
+	command -v $CMD >/dev/null 2>&1 || { echo "Require $CMD but it's not installed. Aborting." >&2; exit 1; }
+done
+
+echo "Checking if the Geant4 environment is setup..."
+if [ -z "${G4SRC}" ]; then
+	echo "Need to set G4SRC."
+	echo "Did set your genat4 install path?"
+	echo "Set it, maybe in your ~/.bashrc file, then rerun your geant4 export script."
+	echo "Aborting install."
+	exit 0
+fi
+
+if [ -z "${G4PATH}" ]; then
+	echo "Need to set G4PATH."
+	echo "Export script seems to not be working."
+	echo "Aborting install."
+	exit 0
+fi
+
+if [ -z "${G4NAME}" ]; then
+	echo "Need to set G4NAME"
+	echo "Did you run your export script?"
+	echo "Aborting install."
+	exit 0
+fi
+
+echo "Checking if the Geant4 environment is setup..."
+if [ -z "${G4ROOT}" ]; then
+	echo "Need to set G4ROOT"
+	echo "Do you have ROOT installed?"
+	echo "Aborting install."
+	exit 1
+fi
+echo "Done."
+
+
+if [ ! -r "${G4ROOT}/FindROOT.cmake" ]; then
+	echo "${G4ROOT}/FindROOT.cmake not found."
+	echo "Do you have ROOT installed?"
+	echo "Aborting install."
+	exit 1
+fi
+
+
+echo "Checking if the UCNA environment is setup..."
+if [ -z "${G4ROOT}" ]; then
+	echo "Need to set G4ROOT"
+	echo "Do you have ROOT installed?"
+	echo "Aborting install."
+	exit 1
+fi
+echo "Done."
+
+
+echo "Looks like we have everything we need."
+echo "About to build UCNA code using the following parameters." 
+#echo "UCNA git repository: ${UCNAGIT}"
+echo "Geant4 source url: ${G4URL}"
+echo "Geant4 version: ${G4NAME}"
+echo "System: ${G4SYSTEM}"
+echo "Install: ${G4SRC}"
+
+
+
+echo "About to install UCNA code in ${UCNABASE}"
+echo "Creating install directories..."
+#mkdir -vp ${G4SRC}
+#mkdir -vp ${G4PATH}
+#mkdir -vp ${G4PACKAGES}
+
+#cd ${G4SRC}/v${G4RELEASE
+
+
+
+#
+# Compile geometry codes
+#
+mkdir -vp ${UCNASRC}
+mkdir -vp ${UCNABIN}
+
+cd ${UCNABUILD}
+cmake -DGeant4_DIR=${G4BUILD} ${UCNASRC}/$PROGRAM
+make -j"$(nproc)"
+#install $PROGRAM ${UCNABIN}/
+
+for PROGRAM in ${UCNAEXE}
+do
+	mkdir -vp ${UCNABUILD}/$PROGRAM-build
+	cd ${UCNABUILD}/$PROGRAM-build
+	cmake -DGeant4_DIR=${G4BUILD} ${UCNASRC}/$PROGRAM
+	make -j"$(nproc)"
+	install $PROGRAM ${UCNABIN}/
+	rm -rf ${UCNABUILD}/${PROGRAM}-build
+done

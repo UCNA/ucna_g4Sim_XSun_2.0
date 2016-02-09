@@ -1,0 +1,39 @@
+#####################################
+# Makefile template for ROOT programs
+#####################################
+
+PATH_USED	= ~/Documents/Caltech/UCNA_Sim/XSun_ucna_G4Sim/UCN/EventGenTools
+CC		= g++
+CXX		= `root-config --cxx`
+CXXFLAGS	= `root-config --cflags`
+LDFLAGS		= `root-config --ldflags` -lMathMore
+LDLIBS		= `root-config --glibs`
+
+CFLAGS 		= $(CXX) $(CXXFLAGS) -W -Wall -o $@ $^ $(LDLIBS) $(LDFLAGS) -I $(PATH_USED)/include/
+
+#These variables need to be changed to the name of the executable/source
+SOURCE		= MC_EventGen.cc $(PATH_USED)/src/BetaSpectrum.cc\
+				 $(PATH_USED)/src/ControlMenu.cc\
+				 $(PATH_USED)/src/ElectronBindingEnergy.cc\
+				 $(PATH_USED)/src/Enums.cc\
+				 $(PATH_USED)/src/FloatErr.cc\
+				 $(PATH_USED)/src/GraphUtils.cc\
+				 $(PATH_USED)/src/NuclEvtGen.cc\
+				 $(PATH_USED)/src/PathUtils.cc\
+				 $(PATH_USED)/src/QFile.cc\
+				 $(PATH_USED)/src/SMExcept.cc\
+				 $(PATH_USED)/src/strutils.cc\
+				 $(PATH_USED)/src/TChainScanner.cc
+EXECUTABLE 	= MC_EventGen
+
+all:	$(EXECUTABLE)
+
+clean:
+	rm $(EXECUTABLE)
+
+$(EXECUTABLE): $(SOURCE)
+	$(CFLAGS) -o $(EXECUTABLE)
+
+.cc.o:
+	$(CFLAGS) -c $*.cc
+

@@ -1,0 +1,183 @@
+#!/bin/sh
+
+
+##
+#
+# Adapted from UCNA shell script by Kevin Peter Hickerson
+#
+# Created: Jan 12, 2015
+#
+##
+
+
+#
+# Environment preparation
+#
+echo "Checking that we have everything we need..."
+for CMD in cmake make tar root nproc install
+do
+	command -v $CMD >/dev/null 2>&1 || { echo "Require $CMD but it's not installed. Aborting." >&2; exit 1; }
+done
+##
+#
+# Adapted into a shell script by Kevin Peter Hickerson
+# From UCNA MC group install instructions
+#
+# Created: July 31, 2014
+# Last Modified: May 2015
+#
+##
+
+
+#
+# Error testing.
+#
+THIS=$0
+ensure () {
+    if [ -z "$1" ]; then
+        echo "$THIS: $2"
+        echo "$THIS: Fatal error. Aborting."
+        exit 1
+    fi
+}
+
+
+#
+# Check Geant4 environment.
+#
+echo "Checking if the Geant4 environment is setup..."
+
+if [ -z "$G4SRC" ]; then
+	echo "Need to set G4SRC."
+	echo "Did set your Genat4 install path?"
+	echo "Set it, maybe in your ~/.bashrc file, then run your Geant4 setup script."
+	echo "Or just run Geant4 setup script from the base directory you want for G4SRC."
+	echo "Aborting build."
+	exit 1
+fi
+
+if [ -z "$G4PATH" ]; then
+	echo "Need to set G4PATH."
+	echo "Export script seems to not be working."
+	echo "Aborting build."
+	exit 1
+fi
+
+if [ -z "$G4NAME" ]; then
+	echo "Need to set G4NAME"
+	echo "Did you run your export script?"
+	echo "Aborting build."
+	exit 0
+fi
+
+
+#
+# Check ROOT environment
+#
+echo "Checking if the ROOT environment is setup..."
+if [ -z "$G4ROOT" ]; then
+	echo "Need to set G4ROOT"
+	echo "Do you have ROOT installed?"
+	echo "Aborting build."
+	exit 1
+fi
+
+#if [ ! -r "$G4ROOT/FindROOT.cmake" ]; then
+#	echo "$G4ROOT/FindROOT.cmake not found."
+#	echo "Is your ROOT instillation working?"
+#	echo "Aborting build."
+#	exit 1
+#fi
+
+
+
+#
+# Check UCNA environment
+#
+echo "Checking if the UCNA environment is setup..."
+ensure "${UCNASRC}"  "Need to set UCNA sources directory with UCNASRC"
+#ensure "${UCNASVN}"      "Need to set UCNA svn repository location UCNASVN."
+#ensure "${UCNAUSER}"     "Need to set UCNA svn user name UCNAUSER."
+ensure "${UCNABIN}"     "Need to set a bin path to place exicutables with UCNABIN"
+#ensure "${UCNAEXE}"      "No executables listed in UCNAEXE. Nothing to build."
+ensure "${UCNABUILD}"    "No build directory set. Nowhere to build."
+
+echo "Looks like we have everything we need to build."
+
+
+echo "Preparing to build..."
+cd ${UCNABUILD}
+cmake -DGeant4_DIR=${G4BUILD} ${UCNASRC}
+make -j"$(nproc)"
+#install $PROGRAM ${UCNABIN}/
+
+exit 0
+
+echo "Preparing to build all of ${UCNAEXE}..."
+for PROGRAM in ${UCNAEXE}
+do
+    echo "Setting up build space for $PROGRAM..."
+    LOWERPROG=`echo $PROGRAM | tr '[:upper:]' '[:lower:]'`
+	mkdir -vp ${UCNABUILD}/$LOWERPROG-build
+	cd ${UCNABUILD}/$LOWERPROG-build
+	if ( cmake -DGeant4_DIR=$G4BUILD ${UCNASOURCES}/$LOWERPROG )
+    then
+        echo "Generated Makefile for $PROGRAM."
+        #if ( make -j"$(nproc)" 2>&1 >/dev/null | grep -i 'error' ) 
+        if ( make -j"$(nproc)" )
+        then
+            echo "Couldn't build $PROGRAM."
+        else
+            echo "Successfully built $PROGRAM. Installing..."
+            if install $PROGRAM ${UCNABIN}/
+            then
+                echo "Installed $PROGRAM in ${UCNABIN}." 
+                if [ -z "${INSTALLEDEXE}" ]; then
+                    INSTALLEDEXE="$PROGRAM"
+                else
+                    INSTALLEDEXE="${INSTALLEDEXE} $PROGRAM"
+                fi
+            else
+                echo "Couldn't install program."
+            fi
+        fi
+    else
+        echo "Unable to generate Makefile for $PROGRAM. Skipping..."
+    fi
+    echo "Cleaning up build space..."
+    rm -rf ${UCNABUILD}/$LOWERPROG-build
+done
+
+#
+# Finish and report
+#
+echo "Attempted to build ${UCNAEXE}."
+ensure "${INSTALLEDEXE}"  "All builds failed.Done."
+if [ "${INSTALLEDEXE}" = "${UCNAEXE}" ]
+then
+    echo "Built all targets. Done."
+    exit 0
+else
+    #TODO echo "Build for ${FAILEDEXE} failed."
+    echo "Only built ${INSTALLEDEXE}. Done."
+    exit 1
+fi
+
+    #color coding that doesn't work....
+    #
+   	#${UCNASCRIPTS}/gccfilter -c cmake \
+    #
+    #echo -e "\e[1;34m"
+    #echo -e "\e[0m"
+
+#
+# g2tas g2root
+#
+# edit Makefile.gcc and change BINDIR $UCNA_BASE_DIR/bin
+# check the definition of the dirs containing lib files and eventually change them
+for PROGRAM in g2tas g2root
+do
+    cd ${UCNABUILD}/$PROGRAM
+    make -f  Makefile.gcc
+done
+#make -f  Makefile.gcc install
