@@ -62,7 +62,7 @@ class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
 
     G4double fSourceRadius;		// spread radius for source droplets
     G4ThreeVector fPosOffset;		// base positioning offset
-    event fEvtsArray[1000000];		// size has to be number of lines in input file
+    event fEvtsArray[10000];		// size has to be number of lines in input file
 
     void LoadFile(G4String fileName);
     void DiskRandom(G4double radius, G4double& x, G4double& y);

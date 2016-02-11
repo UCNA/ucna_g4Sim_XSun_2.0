@@ -2,71 +2,40 @@
 #define DetectorConstruction_h 1
 
 #include "TrackerSD.hh"
+#include "DetectorConstructionUtils.hh"
+#include "SourceHolderConstruction.hh"
+#include "DecayTrapConstruction.hh"
 
 #include "G4VUserDetectorConstruction.hh"
-#include "globals.hh"
-
-#include <G4Material.hh>		// stole from Michael Mendenhall's code.
-#include <G4Element.hh>
-#include <G4SystemOfUnits.hh>
-#include <G4ThreeVector.hh>
 
 #include <G4ElectroMagneticField.hh>	// Taken from WirechamberConstruction.
 #include <G4MagneticField.hh>
 #include <G4RotationMatrix.hh>
 
 #include <string>
-#include <sstream>
-
-//using 	namespace	std;
 
 const int fNbSDs = 4;
-
-const G4double inch = 2.54*cm;
-const G4double torr = atmosphere/760.;
 
 class G4VPhysicalVolume;
 class G4LogicalVolume;
 
 /// Detector construction class to define materials and geometry.
-
-class DetectorConstruction : public G4VUserDetectorConstruction
+class DetectorConstruction : public G4VUserDetectorConstruction, MaterialUser
 {
   public:
     DetectorConstruction();		// Constructor/destructors
     virtual ~DetectorConstruction();
     virtual G4VPhysicalVolume* Construct();
 
-    void SetVacuumPressure(G4double pressure);
+    G4LogicalVolume* experimentalHall_log;	// world volume
+    G4VPhysicalVolume* experimentalHall_phys;
 
-    G4Material* Be; 		///< Beryllium for trap windows
-    G4Material* Al; 		///< Aluminum
-    G4Material* Si; 		///< Silicon
-    G4Material* Cu; 		///< Copper for decay trap
-    G4Material* Wu; 		///< Tungsten for anode wires
-    G4Material* Au; 		///< Gold for cathode wires coating
+    SourceHolderConstruction Source;		// individual components.
+    G4VPhysicalVolume* source_phys;
 
-    G4Material* Vacuum; 	///< our slightly crappy vacuum
-    G4Material* Brass; 		///< brass for source holder
-    G4Material* SS304; 		///< 304 Stainless Steel
-    G4Material* Kevlar; 	///< kevlar for wirechamber window support strings
-    G4Material* Mylar; 		///< mylar for windows
-    G4Material* Polyethylene; 	///< poly for collimator
-    G4Material* WCPentane; 	///< Wirechamber fill: (neo)pentane @ 100torr
-    G4Material* WCNitrogen; 	///< Wirechamber fill: Nitrogen @ 100torr
-    G4Material* Sci; 		///< scintillator material
+    DecayTrapConstruction Trap;
 
-    G4LogicalVolume* experimentalHall_log;
-    G4LogicalVolume* source_container_log;
-    G4LogicalVolume* source_window_log;
-    G4LogicalVolume* source_coating_log[2];
-    G4LogicalVolume* decayTrap_tube_log;
-    G4LogicalVolume* decayTrap_window_log[2];
-    G4LogicalVolume* decayTrap_mylarWindow_log[2];
-    G4LogicalVolume* decayTrap_beWindow_log[2];
-    G4LogicalVolume* decayTrap_collimator_log[2];
-    G4LogicalVolume* decayTrap_collimatorBack_log[2];
-    G4LogicalVolume* decayTrap_innerMonitors_log[2];
+
     G4LogicalVolume* scint_container_log[2];
     G4LogicalVolume* scint_deadLayer_log[2];
     G4LogicalVolume* scint_scintillator_log[2];
@@ -97,12 +66,6 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4String fHCNamesArray[fNbSDs];
 
   protected:
-    G4VPhysicalVolume* experimentalHall_phys;
-    G4VPhysicalVolume* source_holder_phys;
-    G4VPhysicalVolume* source_window_phys;
-    G4VPhysicalVolume* source_coating_phys[2];
-    G4VPhysicalVolume* source_ring_phys;
-    G4VPhysicalVolume* source_phys;
     G4VPhysicalVolume* scint_deadLayer_phys[2];
     G4VPhysicalVolume* scint_scintillator_phys[2];
     G4VPhysicalVolume* scint_lightGuide_phys[2];
@@ -119,8 +82,6 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4VPhysicalVolume* frame_container_phys[2];
 
   private:
-    void DefineMaterials();
-    std::string Append(int i, std::string str);
     void ConstructGlobalField();
     void ConstructEastMWPCField(G4double a, G4double b, G4double c, G4double d,
 				G4RotationMatrix* e, G4ThreeVector f);
@@ -149,8 +110,15 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     TrackerSD* SD_decayTrap_innerMonitors[2];
     TrackerSD* SD_world;
 
-    int fStorageIndex;
+    // later will be changed to UI commands
+    G4float fSourceFoilThick;		// source foil full thickness
+    G4ThreeVector vSourceHolderPos;	// source holder position
 
+    G4float fCrinkleAngle;		// crinkle angle of wiggle foils to be implemented later
+
+
+    int fStorageIndex;		// some of my own tools to help with DetectorConstruction
+    bool bUseSourceHolder;
     G4double fScintStepLimit;
 };
 
