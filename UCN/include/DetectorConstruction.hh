@@ -5,6 +5,8 @@
 #include "DetectorConstructionUtils.hh"
 #include "SourceHolderConstruction.hh"
 #include "DecayTrapConstruction.hh"
+#include "WirechamberConstruction.hh"
+#include "ScintillatorConstruction.hh"
 
 #include "G4VUserDetectorConstruction.hh"
 
@@ -35,24 +37,19 @@ class DetectorConstruction : public G4VUserDetectorConstruction, MaterialUser
 
     DecayTrapConstruction Trap;
 
+    WirechamberConstruction Wirechamber[2];	// delete these lines afterwards
+    G4VPhysicalVolume* mwpc_phys[2];		// and put them in a package
+    ScintillatorConstruction ScintCrystal[2];
+    G4VPhysicalVolume* scint_phys[2];
 
-    G4LogicalVolume* scint_container_log[2];
-    G4LogicalVolume* scint_deadLayer_log[2];
-    G4LogicalVolume* scint_scintillator_log[2];
-    G4LogicalVolume* scint_lightGuide_log[2];
-    G4LogicalVolume* scint_backing_log[2];
-    G4LogicalVolume* wireVol_gas_log[2];
-    G4LogicalVolume* wireVol_cathSeg_log[2];
-    G4LogicalVolume* wireVol_anodeSeg_log[2];
-    G4LogicalVolume* wireVol_cathodeWire_log[2];
-    G4LogicalVolume* wireVol_cathPlate_log[2];
-    G4LogicalVolume* wireVol_anodeWire_log[2];
+
+/*
     G4LogicalVolume* mwpc_container_log[2];
     G4LogicalVolume* mwpc_kevContainer_log[2];
     G4LogicalVolume* mwpc_kevSeg_log[2];
     G4LogicalVolume* mwpc_kevStrip_log[2];
     G4LogicalVolume* mwpc_winIn_log[2];
-    G4LogicalVolume* mwpc_winOut_log[2];
+    G4LogicalVolume* mwpc_winOut_log[2]; */
     G4LogicalVolume* frame_mwpcEntrance_log[2];
     G4LogicalVolume* frame_entranceFront_log[2];
     G4LogicalVolume* frame_entranceMid_log[2];
@@ -66,12 +63,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction, MaterialUser
     G4String fHCNamesArray[fNbSDs];
 
   protected:
-    G4VPhysicalVolume* scint_deadLayer_phys[2];
-    G4VPhysicalVolume* scint_scintillator_phys[2];
-    G4VPhysicalVolume* scint_lightGuide_phys[2];
-    G4VPhysicalVolume* scint_backing_phys[2];
-    G4VPhysicalVolume* scint_container_phys[2];
-    G4VPhysicalVolume* mwpc_container_phys[2];
+/*    G4VPhysicalVolume* mwpc_container_phys[2]; */
     G4VPhysicalVolume* frame_entranceFront_phys[2];
     G4VPhysicalVolume* frame_entranceMid_phys[2];
     G4VPhysicalVolume* frame_entranceBack_phys[2];

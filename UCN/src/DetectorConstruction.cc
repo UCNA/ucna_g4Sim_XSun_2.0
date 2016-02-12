@@ -2,28 +2,7 @@
 #include "GlobalField.hh"	// only need field in the .cc file
 #include "MWPCField.hh"		// all the rest of the geometry goes in .hh file
 
-#include "G4RunManager.hh"
-#include "G4NistManager.hh"
-#include "G4Box.hh"
-#include "G4Cons.hh"
-#include "G4Orb.hh"
-#include "G4Sphere.hh"
-#include "G4Trd.hh"
-#include "G4LogicalVolume.hh"
-#include "G4PVPlacement.hh"
-#include "G4SystemOfUnits.hh"
-#include "G4AutoDelete.hh"
-
 #include <G4UserLimits.hh>		// stole from Michael Mendenhall's code.
-
-#include <cassert>			// scintillator construction classes
-#include <G4Polycone.hh>
-
-#include <math.h>			// Used in WirechamberConstruction
-#include <G4FieldManager.hh>
-#include <G4ChordFinder.hh>
-#include <G4EqMagElectricField.hh>
-#include <G4ClassicalRK4.hh>
 
 #include <Randomize.hh>			// Stolen from Analysis Manager
 #include <G4ios.hh>			// Pretty sure needed for TrackerSD
@@ -40,6 +19,7 @@
 #include <G4SDManager.hh>
 #include <G4EventManager.hh>
 
+#include <G4EqMagElectricField.hh>
 #include <G4MagneticField.hh>		// Bottom half of detector construction
 #include <G4FieldManager.hh>
 #include <G4ChordFinder.hh>
@@ -48,6 +28,7 @@
 #include <G4UserLimits.hh>
 #include <G4PVParameterised.hh>
 
+#include <G4ClassicalRK4.hh>
 #include "G4MagIntegratorStepper.hh"
 #include "G4Mag_UsualEqRhs.hh"
 #include "G4SimpleHeum.hh"
@@ -85,8 +66,6 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
   UserGasLimits->SetMaxAllowedStep(1*cm);
   G4UserLimits* UserSolidLimits = new G4UserLimits();
   UserSolidLimits->SetMaxAllowedStep(fScintStepLimit);	// default value from Messenger class.
-
-  G4VisAttributes* visWindow = new G4VisAttributes(G4Colour(0,1.0,0,1));	// visualization parameter
 
   //----- Experimental Hall. World volume.
   G4double expHall_x = 2.0*m;
@@ -126,175 +105,28 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
   G4double wireVol_cathodeRadius = 39.1*um;
 */  // to change back, you'll need to find EXACTLY where these are all commented out.
 
-
-
   //----- Scintillator construction. Used as Sensitive Volume
-  G4double scint_scintRadius = 7.5*cm;
-  G4double scint_scintBackingRadius = 10*cm;
-  G4double scint_scintThick = 3.5*mm;
-  G4double scint_deadLayerThick = 3.0*um;
-  G4double scint_scintBackingThick = 1.*inch;
-  G4double scint_lightGuideThick = 1.0*cm;
-  G4double scint_N2Volume_Z = scint_lightGuideThick + scint_scintBackingThick;
-  G4double scint_face_PosZ = -scint_N2Volume_Z/2.;
-
-  if((scint_scintBackingRadius < scint_scintRadius) || (scint_lightGuideThick < scint_scintThick))
-	G4cout << "\n\nMajor geometry error! Scintillator measurements don't make sense! \n \n" << G4endl;
-
-  // Create the shapes used in the scintillator object and (to be applied later) visualizations
-  // Overall container layer for the scintillator
-  G4Tubs* scint_N2VolTube = new G4Tubs("N2_vol_tube", 0., scint_scintBackingRadius, scint_N2Volume_Z/2., 0., 2*M_PI);
-
-  // dead layer in scint
-  G4Tubs* scint_deadLayerTube = new G4Tubs("Dead_scint_tube", 0, scint_scintRadius, scint_deadLayerThick/2., 0., 2*M_PI);
-  G4VisAttributes* visDScint= new G4VisAttributes(G4Colour(1.0,0.0,1.0,0.5));
-
-  // scintillator
-  G4Tubs* scint_scintTube = new G4Tubs("scint_tube", 0, scint_scintRadius, (scint_scintThick - scint_deadLayerThick)/2., 0., 2*M_PI);
-  G4VisAttributes* visScint= new G4VisAttributes(G4Colour(0.0,1.0,1.0,0.2));
-
-  // light guides around and behind detector
-  G4double scint_zPlane[] = {0., scint_scintThick, scint_scintThick, scint_lightGuideThick};
-  G4double scint_lightGuideRadius = scint_scintRadius - (scint_lightGuideThick - scint_scintThick);
-  G4double scint_innerRad[] = {scint_scintRadius, scint_scintRadius, scint_lightGuideRadius, scint_lightGuideRadius};
-  G4double scint_outerRad[] = {scint_scintBackingRadius, scint_scintBackingRadius, scint_scintBackingRadius, scint_scintBackingRadius};
-
-  G4Polycone* scint_lightGuidePoly = new G4Polycone("lightguide_polycone", 0., 2*M_PI, 4, scint_zPlane, scint_innerRad, scint_outerRad);
-  G4VisAttributes* visLG = new G4VisAttributes(G4Colour(0.0,1.0,0.5,0.2));
-
-  // backing veto
-  G4Tubs* scint_backingTube = new G4Tubs("backing_tube", 0., scint_scintBackingRadius, scint_scintBackingThick/2., 0., 2*M_PI);
-  G4VisAttributes* visBacking= new G4VisAttributes(G4Colour(0.0,0.0,1,0.2));
-
-  // create and assign the logical volumes and their visualizations
-  for(int i = 0; i <= 1; i++)
+  for(int j = 0; j <= 1; j++)
   {
-    scint_container_log[i] = new G4LogicalVolume(scint_N2VolTube, WCNitrogen, Append(i, "N2_Vol_log_"));
-    scint_container_log[i] -> SetVisAttributes(G4VisAttributes::Invisible);
-    scint_deadLayer_log[i] = new G4LogicalVolume(scint_deadLayerTube, Sci, Append(i, "Dead_scint_log_"));
-    scint_deadLayer_log[i] -> SetVisAttributes(visDScint);
-    scint_scintillator_log[i] = new G4LogicalVolume(scint_scintTube, Sci, Append(i, "scint_log_"));
-    scint_scintillator_log[i] -> SetVisAttributes(visScint);
-    scint_lightGuide_log[i] = new G4LogicalVolume(scint_lightGuidePoly, Sci, Append(i, "light_guide_log_"));
-    scint_lightGuide_log[i] -> SetVisAttributes(visLG);
-    scint_backing_log[i] = new G4LogicalVolume(scint_backingTube, Sci, Append(i, "backing_log_"));
-    scint_backing_log[i] -> SetVisAttributes(visBacking);
+    ScintCrystal[j].Build(j);
   }
 
-  // place the physical volumes inside the scint container.
-  // No need to change z entries of G4ThreeVector positions since overall container will be rotated.
-  for(int i = 0; i <= 1; i++)
-  {
-    scint_deadLayer_phys[i] = new G4PVPlacement(NULL, G4ThreeVector(0,0, -(scint_N2Volume_Z - scint_deadLayerThick)/2.),
-                                scint_deadLayer_log[i], Append(i, "Dead_scint_phys_"), scint_container_log[i], false, 0);
-    scint_scintillator_phys[i] = new G4PVPlacement(NULL, G4ThreeVector(0,0, -scint_N2Volume_Z/2. + scint_deadLayerThick + 
-                                (scint_scintThick - scint_deadLayerThick)/2.),
-                                scint_scintillator_log[i], Append(i, "scint_crystal_phys_"), scint_container_log[i], false, 0);
-    scint_lightGuide_phys[i] = new G4PVPlacement(NULL, G4ThreeVector(0,0, scint_N2Volume_Z/2.), scint_lightGuide_log[i],
-				Append(i, "light_guide_phys_"), scint_container_log[i], false, 0);
-    scint_backing_phys[i] = new G4PVPlacement(NULL, G4ThreeVector(0,0, (scint_N2Volume_Z - scint_scintBackingThick)/2.),
-                                scint_backing_log[i], Append(i, "backing_phys_"), scint_container_log[i], false, 0);
-  }
-
-  G4ThreeVector sideTransScintEast = G4ThreeVector(0., 0., (-1)*(2.2*m - scint_face_PosZ));
-  G4ThreeVector sideTransScintWest = G4ThreeVector(0., 0., (2.2*m - scint_face_PosZ));
+//  G4ThreeVector sideTransScintEast = G4ThreeVector(0., 0., (-1)*(2.2*m - scint_face_PosZ));
+//  G4ThreeVector sideTransScintWest = G4ThreeVector(0., 0., (2.2*m - scint_face_PosZ));
+  G4ThreeVector sideTransScintEast = G4ThreeVector(0., 0., (-1)*(2.2*m - ScintCrystal[0].GetScintFacePos()));
+  G4ThreeVector sideTransScintWest = G4ThreeVector(0., 0., (2.2*m - ScintCrystal[1].GetScintFacePos()));
   G4RotationMatrix* EastSideRot = new G4RotationMatrix();
   EastSideRot -> rotateY(M_PI*rad);
 
+
   // Place the two scintillator containers. Rotate the EAST one so they both face towards the center.
-  scint_container_phys[0] = new G4PVPlacement(EastSideRot, sideTransScintEast, scint_container_log[0],
+  scint_phys[0] = new G4PVPlacement(EastSideRot, sideTransScintEast, ScintCrystal[0].container_log,
 				"scint_container_phys_EAST", experimentalHall_log, false, 0, true);
-  scint_container_phys[1] = new G4PVPlacement(NULL, sideTransScintWest, scint_container_log[1],
+  scint_phys[1] = new G4PVPlacement(NULL, sideTransScintWest, ScintCrystal[1].container_log,
 				"scint_container_phys_WEST", experimentalHall_log, false, 0, true);
 
-  //----- Begin Wire volume construction. Active region inside wire chamber.
-//  G4double wireVol_anodeRadius = 5*um;
-//  G4double wireVol_cathodeRadius = 25*um;
-  G4double wireVol_platingThick = 0.2*um;
-  G4double wireVol_wireSpacing = 2.54*mm;
-  G4double wireVol_NbOfWires = 64;
-  G4double wireVol_planeSpacing = 1*cm;
-
-  G4Material* wireVol_cathodeWireMat = Al;
-  G4Material* wireVol_anodeWireMat = Wu;
-  G4Material* wireVol_cathodePlateMat = Au;
-  G4Material* wireVol_activeGas = WCPentane;
-
-  G4double wireVol_wirePlaneWidth = wireVol_NbOfWires*wireVol_wireSpacing;
-
-  // Create shapes and visualizations to be set later.
-  // effective mwpc gas volume containing the cathodes and anodes
-  G4Box* wireVol_mwpcGasBox = new G4Box("mpwc_gas_box", wireVol_wirePlaneWidth/2., wireVol_wirePlaneWidth/2., wireVol_planeSpacing);
-
-  // anode, cathode wire containers. These are "on their side" to allow wireplane parametrization. Rotated later.
-  G4Box* wireVol_cathContainerBox = new G4Box("cathContainer_Box", wireVol_wirePlaneWidth/2., wireVol_cathodeRadius, wireVol_wirePlaneWidth/2.);
-  G4Box* wireVol_anodeContainerBox = new G4Box("anodeContainer_Box", wireVol_wirePlaneWidth/2., wireVol_anodeRadius, wireVol_wirePlaneWidth/2.);
-
-  // anode, cathode wires and surrouding gas
-  G4Tubs* wireVol_cathPlateTube = new G4Tubs("cathplate_tube", wireVol_cathodeRadius - wireVol_platingThick,
-						wireVol_cathodeRadius, wireVol_wirePlaneWidth/2., 0., 2*M_PI);
-  G4Tubs* wireVol_cathodeTube = new G4Tubs("cathode_tube", 0, wireVol_cathodeRadius- wireVol_platingThick,
-						wireVol_wirePlaneWidth/2., 0., 2*M_PI);
-  G4Tubs* wireVol_anodeTube = new G4Tubs("anode_tube", 0, wireVol_anodeRadius, wireVol_wirePlaneWidth/2., 0, 2*M_PI);
-  G4Box* wireVol_cathSegBox = new G4Box("cathodeSegmentBox", wireVol_wireSpacing/2., wireVol_cathodeRadius, wireVol_wirePlaneWidth/2.);
-  G4Box* wireVol_anodeSegBox = new G4Box("anodeSegmentBox", wireVol_wireSpacing/2., wireVol_anodeRadius, wireVol_wirePlaneWidth/2.);
-
-  G4RotationMatrix* xRot90 = new G4RotationMatrix;	// rotate 90 degrees around X axis
-  xRot90->rotateX(M_PI/2.*rad);
-  G4RotationMatrix* xzRot90 = new G4RotationMatrix;	// rotate 90 deg around X then Z (Y axis in local coordinates)
-  xzRot90->rotateX(M_PI/2.*rad);
-  xzRot90->rotateY(M_PI/2.*rad);
-
-  G4VisAttributes* visCathWires = new G4VisAttributes(G4Colour(1,0.7,0,0.8));
-  G4VisAttributes* visAnodeWires = new G4VisAttributes(G4Colour(1,0.3,0,0.8));
-
-  // Create logical volume arrays. Below: active region container, anode, cathode segments
-  for(int i = 0; i <= 1; i++)
-  {
-    wireVol_gas_log[i] = new G4LogicalVolume(wireVol_mwpcGasBox, wireVol_activeGas, Append(i, "mwpc_gas_log_"));
-    wireVol_gas_log[i] -> SetVisAttributes(G4VisAttributes::Invisible);
-    wireVol_cathSeg_log[i] = new G4LogicalVolume(wireVol_cathSegBox, wireVol_activeGas, Append(i, "cathSeg_log_"));
-    wireVol_anodeSeg_log[i] = new G4LogicalVolume(wireVol_anodeSegBox, wireVol_activeGas, Append(i, "anodeSeg_log_"));
-    wireVol_cathodeWire_log[i] = new G4LogicalVolume(wireVol_cathodeTube, wireVol_cathodeWireMat, Append(i, "cathode_log_"));
-    wireVol_cathPlate_log[i] = new G4LogicalVolume(wireVol_cathPlateTube, wireVol_cathodePlateMat, Append(i, "cathode_plate_log_"));
-    wireVol_anodeWire_log[i] = new G4LogicalVolume(wireVol_anodeTube, wireVol_anodeWireMat, Append(i, "anode_log_"));
-    wireVol_cathSeg_log[i] -> SetVisAttributes(G4VisAttributes::Invisible);
-    wireVol_anodeSeg_log[i] -> SetVisAttributes(G4VisAttributes::Invisible);
-    wireVol_cathodeWire_log[i] -> SetVisAttributes(visCathWires);
-    wireVol_cathPlate_log[i] -> SetVisAttributes(visCathWires);
-    wireVol_anodeWire_log[i] -> SetVisAttributes(visAnodeWires);
-  }
-  // make anode and cathode plane container volumes
-  G4LogicalVolume* wireVol_cathContainer1_log[2];
-  G4LogicalVolume* wireVol_cathContainer2_log[2];
-  G4LogicalVolume* wireVol_anodeContainer_log[2];
-  for(int i = 0; i <= 1; i++)
-  {
-    wireVol_cathContainer1_log[i] = new G4LogicalVolume(wireVol_cathContainerBox, wireVol_activeGas, Append(i, "cathContainer1_log_"));
-    wireVol_cathContainer2_log[i] = new G4LogicalVolume(wireVol_cathContainerBox, wireVol_activeGas, Append(i, "cathContainer2_log_"));
-    wireVol_anodeContainer_log[i] = new G4LogicalVolume(wireVol_anodeContainerBox, wireVol_activeGas, Append(i, "anodeContainer_log_"));
-  }
-  // place all the objects sequentially. So far, keep positions same since we will attempt to rotate
-  for(int i = 0; i <= 1; i++)
-  {
-    new G4PVPlacement(NULL, G4ThreeVector(), wireVol_cathodeWire_log[i], Append(i, "cathode_wire_phys_"), wireVol_cathSeg_log[i], true, 0);
-    new G4PVPlacement(NULL, G4ThreeVector(), wireVol_cathPlate_log[i], Append(i, "cathode_plate_phys_"), wireVol_cathSeg_log[i], true, 0);
-    new G4PVPlacement(NULL, G4ThreeVector(), wireVol_anodeWire_log[i], Append(i, "anode_wire_phys_"), wireVol_anodeSeg_log[i], true, 0);
-
-    new G4PVPlacement(xRot90, G4ThreeVector(0., 0., wireVol_cathodeRadius - wireVol_planeSpacing),
-	wireVol_cathContainer1_log[i], Append(i, "cathContainer1_phys_"), wireVol_gas_log[i], false, 0);
-    new G4PVPlacement(xzRot90, G4ThreeVector(0., 0., (-1)*(wireVol_cathodeRadius - wireVol_planeSpacing)),
-	wireVol_cathContainer2_log[i], Append(i, "cathContainer2_phys_"), wireVol_gas_log[i], false, 0);
-    new G4PVPlacement(xRot90, G4ThreeVector(0,0,0), wireVol_anodeContainer_log[i], Append(i, "anodeContainer_phys_"), wireVol_gas_log[i], false,0);
-
-    // replicate the segments defined above into cathode, anode arrays
-    new G4PVReplica(Append(i, "CathodeArray1_"), wireVol_cathSeg_log[i], wireVol_cathContainer1_log[i], kXAxis, wireVol_NbOfWires, wireVol_wireSpacing);
-    new G4PVReplica(Append(i, "CathodeArray2_"), wireVol_cathSeg_log[i], wireVol_cathContainer2_log[i], kXAxis, wireVol_NbOfWires, wireVol_wireSpacing);
-    new G4PVReplica(Append(i, "AnodeArray_"), wireVol_anodeSeg_log[i], wireVol_anodeContainer_log[i], kXAxis, wireVol_NbOfWires, wireVol_wireSpacing);
-  }
-
   //----- Begin wirechamber construction. MWPC used in front of Scintillator.
-  G4double mwpc_windowThick = 6*um;
+/*  G4double mwpc_windowThick = 6*um;
   G4double mwpc_entranceRadius = 7.0*cm;
   G4double mwpc_exitRadius = 7.5*cm;
   G4double mwpc_entranceToCathodes = 5.0*mm;
@@ -373,9 +205,25 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 				"mwpc_container_phys_EAST", experimentalHall_log, false, 0, true);
   mwpc_container_phys[1] = new G4PVPlacement(NULL, sideTransMWPCWest, mwpc_container_log[1],
 				"mwpc_container_phys_West", experimentalHall_log, false, 0, true);
+*/
+
+  for(int i = 0; i <= 1; i++)
+  {
+    Wirechamber[i].Build(i);	// creates Wirechamber objects and puts them in 2 element array to hold
+  }
+
+  mwpc_phys[0] = new G4PVPlacement(EastSideRot, G4ThreeVector(0, 0, -2*m), Wirechamber[0].container_log,
+                                "mwpc_container_phys_EAST", experimentalHall_log, false, 0, true);
+  mwpc_phys[1] = new G4PVPlacement(NULL, G4ThreeVector(0,0,2*m), Wirechamber[1].container_log,
+                                "mwpc_container_phys_West", experimentalHall_log, false, 0, true);
+
+
+
+
+
 
   //----- Begin DetectorPackageConstruction. This is the frame that holds the scintillator and MWPC.
-
+/*
   G4double frame_packageRadius = 6.0*inch;
   G4double frame_mwpcEntranceThick = 0.375*inch;
   G4double frame_mwpcEntranceRadius = 3.0*inch;	// not the same value as mwpc_entranceRadius
@@ -466,9 +314,9 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
     frame_backStuff_phys[i] = new G4PVPlacement(NULL, G4ThreeVector(0, 0, frame_detFrameHalf_Z - 0.5*frame_backStuffThick),
                                   frame_backStuff_log[i], Append(i, "backStuff_phys_"), frame_container_log[i], false, 0);
   }
-
+*/
   //----- Finish up detector construction. Need to place frame_container_log in experimentalHall
-  G4ThreeVector frameTransEast = G4ThreeVector(0., 0., (-1)*(2.2*m));	// note: scint face position is 0 in local coord.
+/*  G4ThreeVector frameTransEast = G4ThreeVector(0., 0., (-1)*(2.2*m));	// note: scint face position is 0 in local coord.
 									// Also there's no offset. So it's just -2.2m
   G4ThreeVector frameTransWest = G4ThreeVector(0., 0., 2.2*m);
 
@@ -476,22 +324,25 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 				"Detector_Package_Frame_EAST", experimentalHall_log, false, 0, true);
   frame_container_phys[1] = new G4PVPlacement(NULL, frameTransWest, frame_container_log[1],
 				"Detector_Package_Frame_WEST", experimentalHall_log, false, 0, true);
-
+*/
   for(int i = 0; i <= 1; i++)			// set user limits in specific volumes
   {
 //    decayTrap_window_log[i] -> SetUserLimits(UserSolidLimits);
-    mwpc_container_log[i] -> SetUserLimits(UserGasLimits);
+/*    mwpc_container_log[i] -> SetUserLimits(UserGasLimits);
     mwpc_winIn_log[i] -> SetUserLimits(UserSolidLimits);
     mwpc_winOut_log[i] -> SetUserLimits(UserSolidLimits);
     mwpc_kevStrip_log[i] -> SetUserLimits(UserSolidLimits);
+*/
   }
 
   // register logical volumes as sensitive detectors. Used for all info tracking during sim
   for(int i = 0; i <= 1; i++)
   {
     SD_scint_scintillator[i] = RegisterSD(Append(i, "SD_scint_"), Append(i, "HC_scint_"));
+    ScintCrystal[i].scintillator_log -> SetSensitiveDetector(SD_scint_scintillator[i]);
+/*    SD_scint_scintillator[i] = RegisterSD(Append(i, "SD_scint_"), Append(i, "HC_scint_"));
     scint_scintillator_log[i] -> SetSensitiveDetector(SD_scint_scintillator[i]);
-
+*/
 /*    SD_scint_deadScint[i] = RegisterSD(Append(i, "SD_deadScint_"));
     scint_deadLayer_log[i] -> SetSensitiveDetector(SD_scint_deadScint[i]);
     scint_container_log[i] -> SetSensitiveDetector(SD_scint_deadScint[i]);
@@ -512,9 +363,15 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
     decayTrap_beWindow_log[i] -> SetSensitiveDetector(SD_decayTrap_windows[i]);
 */
     SD_wireVol[i] = RegisterSD(Append(i, "SD_wireVol_"), Append(i, "HC_wireVol_"));
+    Wirechamber[i].ActiveRegion.gas_log -> SetSensitiveDetector(SD_wireVol[i]);
+    Wirechamber[i].ActiveRegion.anodeSeg_log -> SetSensitiveDetector(SD_wireVol[i]);
+    Wirechamber[i].ActiveRegion.cathSeg_log -> SetSensitiveDetector(SD_wireVol[i]);
+
+/*    SD_wireVol[i] = RegisterSD(Append(i, "SD_wireVol_"), Append(i, "HC_wireVol_"));
     wireVol_gas_log[i] -> SetSensitiveDetector(SD_wireVol[i]);
     wireVol_anodeSeg_log[i] -> SetSensitiveDetector(SD_wireVol[i]);
     wireVol_cathSeg_log[i] -> SetSensitiveDetector(SD_wireVol[i]);
+*/
 /*
     SD_wireVol_planes[i] = RegisterSD(Append(i, "SD_wireVol_planes_"));
     wireVol_cathodeWire_log[i] -> SetSensitiveDetector(SD_wireVol_planes[i]);
@@ -554,10 +411,9 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
   }
 */
 
-  G4cout << "pre field" << G4endl;
 
   // Create everything needed for global and local EM fields
-  G4ThreeVector East_EMFieldLocation = mwpc_activeRegionTrans + sideTransMWPCEast;
+/*  G4ThreeVector East_EMFieldLocation = mwpc_activeRegionTrans + sideTransMWPCEast;
   G4ThreeVector West_EMFieldLocation = mwpc_activeRegionTrans + sideTransMWPCWest;
 
   ConstructGlobalField();			// make magnetic and EM fields.
@@ -565,8 +421,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 			mwpc_fieldE0, EastSideRot, East_EMFieldLocation);
   ConstructWestMWPCField(wireVol_wireSpacing, wireVol_planeSpacing, wireVol_anodeRadius,
 			mwpc_fieldE0, NULL, West_EMFieldLocation);
-
-  G4cout << "post field" << G4endl;
+*/
 
   return experimentalHall_phys;
 }
@@ -582,28 +437,6 @@ TrackerSD* DetectorConstruction::RegisterSD(G4String sdName, G4String hcName)
 
   return sd;
 }
-
-/*string DetectorConstruction::Append(int i, string str)
-{
-//  stringstream newString;
-
-  string newString;
-
-  if(i == 0)
-  {
-    newString = str + "EAST";
-  }
-  else if(i == 1)
-  {
-    newString = str + "WEST";
-  }
-  else
-    G4cout << "Int flag doesn't match type of naming." << G4endl;
-
-  return newString;
-
-//  return newString.str();
-}*/
 
 void DetectorConstruction::ConstructGlobalField()
 {
@@ -659,7 +492,7 @@ void DetectorConstruction::ConstructEastMWPCField(G4double a, G4double b, G4doub
   eastLocalFieldManager -> SetMaximumEpsilonStep(1e-5);
   eastLocalFieldManager -> SetDeltaOneStep(0.1*um);
 
-  mwpc_container_log[0] -> SetFieldManager(eastLocalFieldManager, true);
+//  mwpc_container_log[0] -> SetFieldManager(eastLocalFieldManager, true);
   return;
 }
 
@@ -688,6 +521,6 @@ void DetectorConstruction::ConstructWestMWPCField(G4double a, G4double b, G4doub
   westLocalFieldManager -> SetMaximumEpsilonStep(1e-5);
   westLocalFieldManager -> SetDeltaOneStep(0.1*um);
 
-  mwpc_container_log[1] -> SetFieldManager(westLocalFieldManager, true);
+//  mwpc_container_log[1] -> SetFieldManager(westLocalFieldManager, true);
   return;
 }
