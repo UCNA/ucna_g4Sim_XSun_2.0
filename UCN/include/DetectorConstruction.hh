@@ -7,6 +7,7 @@
 #include "DecayTrapConstruction.hh"
 #include "WirechamberConstruction.hh"
 #include "ScintillatorConstruction.hh"
+#include "PackageDetConstruction.hh"
 
 #include "G4VUserDetectorConstruction.hh"
 
@@ -37,43 +38,16 @@ class DetectorConstruction : public G4VUserDetectorConstruction, MaterialUser
 
     DecayTrapConstruction Trap;
 
-    WirechamberConstruction Wirechamber[2];	// delete these lines afterwards
-    G4VPhysicalVolume* mwpc_phys[2];		// and put them in a package
-    ScintillatorConstruction ScintCrystal[2];
-    G4VPhysicalVolume* scint_phys[2];
+    PackageDetConstruction DetPackage[2];
+    G4VPhysicalVolume* detPackage_phys[2];
 
 
-/*
-    G4LogicalVolume* mwpc_container_log[2];
-    G4LogicalVolume* mwpc_kevContainer_log[2];
-    G4LogicalVolume* mwpc_kevSeg_log[2];
-    G4LogicalVolume* mwpc_kevStrip_log[2];
-    G4LogicalVolume* mwpc_winIn_log[2];
-    G4LogicalVolume* mwpc_winOut_log[2]; */
-    G4LogicalVolume* frame_mwpcEntrance_log[2];
-    G4LogicalVolume* frame_entranceFront_log[2];
-    G4LogicalVolume* frame_entranceMid_log[2];
-    G4LogicalVolume* frame_entranceBack_log[2];
-    G4LogicalVolume* frame_container_log[2];
-    G4LogicalVolume* frame_mwpcExit_log[2];
-    G4LogicalVolume* frame_mwpcExitGasN2_log[2];
-    G4LogicalVolume* frame_backStuff_log[2];
 
     G4String fSDNamesArray[fNbSDs];	// needs to be public since EventAction will access all elements
     G4String fHCNamesArray[fNbSDs];
 
-  protected:
-/*    G4VPhysicalVolume* mwpc_container_phys[2]; */
-    G4VPhysicalVolume* frame_entranceFront_phys[2];
-    G4VPhysicalVolume* frame_entranceMid_phys[2];
-    G4VPhysicalVolume* frame_entranceBack_phys[2];
-    G4VPhysicalVolume* frame_mwpcExit_phys[2];
-    G4VPhysicalVolume* frame_mwpcExitGasN2_phys[2];
-    G4VPhysicalVolume* frame_backStuff_phys[2];
-    G4VPhysicalVolume* frame_mwpcEntrance_phys[2];
-    G4VPhysicalVolume* frame_container_phys[2];
-
   private:
+    // field constructors
     void ConstructGlobalField();
     void ConstructEastMWPCField(G4double a, G4double b, G4double c, G4double d,
 				G4RotationMatrix* e, G4ThreeVector f);
@@ -86,6 +60,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction, MaterialUser
 				// e = rotation matrix of our coordinate system
 				// f = translation vector of our coordinate system
 
+    // Register and store each SD
     TrackerSD* RegisterSD(G4String sdName, G4String hcName);
 
     TrackerSD* SD_scint_scintillator[2];	// all the SD objects that will be used
@@ -102,14 +77,14 @@ class DetectorConstruction : public G4VUserDetectorConstruction, MaterialUser
     TrackerSD* SD_decayTrap_innerMonitors[2];
     TrackerSD* SD_world;
 
-    // later will be changed to UI commands
+    // User Interface commands from .mac files
     G4float fSourceFoilThick;		// source foil full thickness
     G4ThreeVector vSourceHolderPos;	// source holder position
 
     G4float fCrinkleAngle;		// crinkle angle of wiggle foils to be implemented later
 
-
-    int fStorageIndex;		// some of my own tools to help with DetectorConstruction
+    // some of my own tools to help with DetectorConstruction
+    int fStorageIndex;
     bool bUseSourceHolder;
     G4double fScintStepLimit;
 };
