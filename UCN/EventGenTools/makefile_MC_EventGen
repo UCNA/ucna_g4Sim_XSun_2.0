@@ -2,7 +2,7 @@
 # Makefile template for ROOT programs
 #####################################
 
-PATH_USED	= ~/Documents/Caltech/UCNA_Sim/XSun_ucna_G4Sim/UCN/EventGenTools
+PATH_USED	= ~/Documents/Caltech/UCNA_Sim/ucna_g4Sim_XSun_2.0/UCN/EventGenTools
 CC		= g++
 CXX		= `root-config --cxx`
 CXXFLAGS	= `root-config --cflags`

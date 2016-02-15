@@ -12,6 +12,9 @@ using namespace ROOT::Math;
 
 void mi_evtgen(StreamInteractor* S) {
 
+	std::string base = getenv("UCNA_BASE");
+	std::string path = base + "UCN/EventGenTools";
+
 	// load arguments
 	const unsigned int nTrees = S->popInt();
 	const unsigned int nPerTree = S->popInt();
@@ -21,7 +24,8 @@ void mi_evtgen(StreamInteractor* S) {
 	const std::string genName = S->popString();
 	
 	// load generators
-	std::string majorDir= DIR_STRING;
+//	std::string majorDir= DIR_STRING;
+	std::string majorDir = path;
 	static NucDecayLibrary NDL(majorDir+"/NuclearDecaysGenerators",1e-6);
 //	static NucDecayLibrary NDL(getEnvSafe("UCNA_AUX")+"/NuclearDecays/",1e-6);
 	NucDecaySystem& NDS = NDL.getGenerator(genName);
