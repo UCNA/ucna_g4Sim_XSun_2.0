@@ -26,6 +26,7 @@ public:
   MaterialUser();	// constructor
 
   std::string Append(int i, std::string str);
+  int Sign(int j);
   static void SetVacuumPressure(G4double pressure);
 
   static G4Material* Be; 		///< Beryllium for trap windows

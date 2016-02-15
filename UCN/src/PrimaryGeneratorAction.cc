@@ -56,6 +56,16 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   // use the particle species flag to set particle type
   G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
   G4ParticleDefinition* particle = particleTable->FindParticle("geantino");
+
+/*	// geometry debugging geantinos
+  fParticleGun -> SetParticleDefinition(particle);
+  fParticleGun -> SetParticleEnergy(400*keV);
+  fParticleGun -> SetParticlePosition(G4ThreeVector(0, 0, 0));
+  if( G4UniformRand() < 0.5)
+    fParticleGun -> SetParticleMomentumDirection(G4ThreeVector(0,0,1));
+  else
+    fParticleGun -> SetParticleMomentumDirection(G4ThreeVector(0,0,-1));
+*/
   if(fEvtsArray[nID].event_speciesFlag == 11)
   {
     particle = particleTable->FindParticle("e-");

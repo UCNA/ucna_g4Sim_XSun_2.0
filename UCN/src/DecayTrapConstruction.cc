@@ -4,11 +4,10 @@
 #include <G4Tubs.hh>
 #include <G4RotationMatrix.hh>
 
-// NOTE: WE ARE SETTING THE DEFAULTS AS THE 2011/2012 GEOMETRY
-// CHANGE THE DEFAULTS TO M.M'S ONCE WE GET THE SWITCH STATEMENTS WORKING
+
 DecayTrapConstruction::DecayTrapConstruction()
-: dWindowThick(0.5*um), dCoatingThick(0.180*um),
-dInnerRadiusOfTrap(2.45*inch), dTubeWallThickness(2*mm), dInnerRadiusOfCollimator(2.3*inch),
+: dWindowThick(0.7*um), dCoatingThick(0.3*um),
+dInnerRadiusOfTrap(2.45*inch), dTubeWallThickness(2*mm), dInnerRadiusOfCollimator(2.3*inch), dCollimatorThick(0.8*inch),
 mTubeMat(Cu), mCollimatorMat(Polyethylene), mDecayTrapWindowMat(Mylar), mDecayTrapCoatingMat(Be)
 {
   // Can use this area to set the default class members as I have just done above.
@@ -29,8 +28,8 @@ void DecayTrapConstruction::Build(G4LogicalVolume* world, float crinkleAngle)
 
   // decay trap windows, collimator, monitors
   G4double totalWindowThickness = dWindowThick + dCoatingThick;
-//  G4double decayTrap_collimatorThick = 0.8*inch;
-  G4double collimatorThick = 0.7*inch;	// M.Brown's 2011/2012 geometry
+//  G4double decayTrap_collimatorThick = 0.8*inch;	// original my sim coding
+//  G4double collimatorThick = 0.7*inch;	// M.Brown's 2011/2012 geometry
   G4double beWindow_PosZ = -totalWindowThickness/2. + dCoatingThick/2.;
   G4double mylarWindow_PosZ = totalWindowThickness/2. - dWindowThick/2.;
   G4double window_PosZ = (tubeLength + totalWindowThickness)/2.;
@@ -41,9 +40,9 @@ void DecayTrapConstruction::Build(G4LogicalVolume* world, float crinkleAngle)
   G4Tubs* mylarTube = new G4Tubs("mylarTube", 0., tubeOuterRadius, dWindowThick/2., 0., 2*M_PI);
   G4Tubs* beTube = new G4Tubs("beTube", 0., tubeOuterRadius, dCoatingThick/2., 0., 2*M_PI);
   G4Tubs* collimatorTube = new G4Tubs("decayTrap_collimatorTube", dInnerRadiusOfCollimator,
-                                dInnerRadiusOfCollimator + collimatorThick, collimatorThick/2.,0., 2*M_PI);
+                                dInnerRadiusOfCollimator + dCollimatorThick, dCollimatorThick/2.,0., 2*M_PI);
   G4Tubs* collimatorBackTube = new G4Tubs("decayTrap_collimatorBackTube", tubeOuterRadius + 1.*mm,
-                                dInnerRadiusOfCollimator + collimatorThick, collimatorThick/2., 0., 2*M_PI);
+                                dInnerRadiusOfCollimator + dCollimatorThick, dCollimatorThick/2., 0., 2*M_PI);
   G4Tubs* trapMonitorTube = new G4Tubs("trap_monitor_tube", 0., dInnerRadiusOfTrap, monitorThickness/2.0, 0., 2*M_PI);
 
   for(int i = 0; i <= 1; i++)
@@ -60,9 +59,9 @@ void DecayTrapConstruction::Build(G4LogicalVolume* world, float crinkleAngle)
   new G4PVPlacement(NULL, G4ThreeVector(0., 0., mylarWindow_PosZ), mylarWin_log[1], "mylar_win_WEST", decayTrapWin_log[1], false, 0);
   new G4PVPlacement(NULL, G4ThreeVector(0., 0., beWindow_PosZ), beWin_log[1], "be_win_WEST", decayTrapWin_log[1], false, 0);
 
-  G4double collimator_PosZ = (tubeLength + collimatorThick)/2.;
+  G4double collimator_PosZ = (tubeLength + dCollimatorThick)/2.;
   collimator_PosZ += totalWindowThickness/2.;
-  G4double collimatorBack_PosZ = tubeLength/2. - collimatorThick;
+  G4double collimatorBack_PosZ = tubeLength/2. - dCollimatorThick;
 
   for(int i = 0; i <= 1; i++)
   {

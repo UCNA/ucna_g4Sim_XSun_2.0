@@ -43,21 +43,112 @@ DetectorConstruction::DetectorConstruction()
 : G4VUserDetectorConstruction()
 {
   // initialize some useful private class variables
-  bUseSourceHolder = false;
-  fScintStepLimit = 1.0*mm;
   fStorageIndex = 0;	// this loops over our TrackerHit names storage array
-
   fCrinkleAngle = 0;
-}
 
+  // Here in the constructor we will create everything related to a "messenger" class
+  uiDetectorDir = new G4UIdirectory("/detector/");
+  uiDetectorDir -> SetGuidance("/detector control");
+
+  uiDetectorGeometryCmd = new G4UIcmdWithAString("/detector/geometry",this);
+  uiDetectorGeometryCmd -> SetGuidance("Set the geometry of the detector");
+  uiDetectorGeometryCmd -> AvailableForStates(G4State_PreInit, G4State_Idle);
+  sGeometry = "C";	// this sets a default
+
+  uiDetOffsetCmd = new G4UIcmdWith3VectorAndUnit("/detector/offset",this);
+  uiDetOffsetCmd -> SetGuidance("antisymmetric offset of detector packages from central axis");
+  uiDetOffsetCmd -> SetDefaultValue(G4ThreeVector());
+  uiDetOffsetCmd -> AvailableForStates(G4State_PreInit);
+  vDetOffset = G4ThreeVector();
+
+  uiDetRotCmd = new G4UIcmdWithADouble("/detector/rotation",this);
+  uiDetRotCmd -> SetGuidance("Antisymmetric rotation of detector packages around z axis");
+  uiDetRotCmd -> SetDefaultValue(0.);
+  uiDetRotCmd -> AvailableForStates(G4State_PreInit);
+  fDetRot = 0.;
+
+  uiVacuumLevelCmd = new G4UIcmdWithADoubleAndUnit("/detector/vacuum",this);
+  uiVacuumLevelCmd -> SetGuidance("Set SCS vacuum pressure");
+  fVacuumPressure = 0;
+
+  uiSourceHolderPosCmd = new G4UIcmdWith3VectorAndUnit("/detector/sourceholderpos",this);
+  uiSourceHolderPosCmd -> SetGuidance("position of the source holder");
+  uiSourceHolderPosCmd -> SetDefaultValue(G4ThreeVector());
+  uiSourceHolderPosCmd -> AvailableForStates(G4State_PreInit);
+  vSourceHolderPos = G4ThreeVector(0,0,0);	// we explicitly set all class members
+
+  uiUseFoilCmd = new G4UIcmdWithABool("/detector/infoil",this);
+  uiUseFoilCmd -> SetGuidance("Set true to build In source foil instead of usual sealed sources");
+  uiUseFoilCmd -> SetDefaultValue(false);
+  bUseFoil = false;				// since some of these SetDefaultVolume
+
+  uiSourceFoilThickCmd = new G4UIcmdWithADoubleAndUnit("/detector/sourcefoilthick",this);
+  uiSourceFoilThickCmd -> SetGuidance("Set source foil full thickness");
+  fSourceFoilThick = 7.2*um;
+  uiSourceFoilThickCmd -> SetDefaultValue(fSourceFoilThick);
+  uiSourceFoilThickCmd -> AvailableForStates(G4State_PreInit);
+
+  uiScintStepLimitCmd = new G4UIcmdWithADoubleAndUnit("/detector/scintstepsize",this);
+  uiScintStepLimitCmd -> SetGuidance("step size limit in scintillator, windows");
+  uiScintStepLimitCmd -> SetDefaultValue(1.0*mm);
+  fScintStepLimit = 1.0*mm;			// doesn't seem to work
+
+  experimentalHall_log = NULL;
+  experimentalHall_phys = NULL;
+}
 
 DetectorConstruction::~DetectorConstruction()
 { }
 
+void DetectorConstruction::SetNewValue(G4UIcommand * command, G4String newValue)
+{
+  if (command == uiDetectorGeometryCmd)
+  {
+    sGeometry = G4String(newValue);
+  }
+  else if (command == uiDetOffsetCmd)
+  {
+    vDetOffset = uiDetOffsetCmd->GetNew3VectorValue(newValue);
+    G4cout << "Setting detector offsets to " << vDetOffset/mm << " mm" << G4endl;
+  }
+  else if (command == uiDetRotCmd)
+  {
+    fDetRot = uiDetRotCmd->GetNewDoubleValue(newValue);
+    G4cout << "Setting detector rotation to " << fDetRot << " radians" << G4endl;
+  }
+  else if (command == uiSourceHolderPosCmd)
+  {
+    vSourceHolderPos = uiSourceHolderPosCmd->GetNew3VectorValue(newValue);
+    G4cout<<"setting the source at "<<vSourceHolderPos/mm << " mm" << G4endl;
+  }
+  else if (command == uiVacuumLevelCmd)
+  {
+    fVacuumPressure = uiVacuumLevelCmd->GetNewDoubleValue(newValue);
+  }
+  else if (command == uiUseFoilCmd)
+  {
+    bUseFoil = uiUseFoilCmd->GetNewBoolValue(newValue);
+    G4cout << "Setting In source foil construction to " << bUseFoil << G4endl;
+  }
+  else if(command == uiSourceFoilThickCmd)
+  {
+    fSourceFoilThick = uiSourceFoilThickCmd->GetNewDoubleValue(newValue);
+  }
+  else if (command == uiScintStepLimitCmd)
+  {
+    fScintStepLimit = uiScintStepLimitCmd->GetNewDoubleValue(newValue);
+    G4cout << "Setting step limit in solids to " << fScintStepLimit/mm << "mm" << G4endl;
+  }
+  else
+  {
+    G4cout << "Unknown command:" << command->GetCommandName() << " passed to DetectorConstruction::SetNewValue" << G4endl;
+  }
+}
+
 G4VPhysicalVolume* DetectorConstruction::Construct()
 {
   // ----- Materials gets made before here via the DetectorTools class
-  SetVacuumPressure(0);	// this is the set vacuum pressure from DetectorTools
+  SetVacuumPressure(fVacuumPressure);	// this is the set vacuum pressure from DetectorTools
 
   // user step limits
   G4UserLimits* UserCoarseLimits = new G4UserLimits();
@@ -71,43 +162,57 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
   G4double expHall_x = 2.0*m;
   G4double expHall_y = 2.0*m;
   G4double expHall_z = 8.0*m;
-  G4Box* experimentalHall_box = new G4Box("expHall_box", expHall_x/2, expHall_y/2, expHall_z/2);
+  G4Box* experimentalHall_box = new G4Box("expHall_box", expHall_x/2., expHall_y/2., expHall_z/2.);
   experimentalHall_log = new G4LogicalVolume(experimentalHall_box, Vacuum, "World_log");
   experimentalHall_log -> SetVisAttributes(G4VisAttributes::Invisible);
   experimentalHall_log -> SetUserLimits(UserCoarseLimits);
   experimentalHall_phys = new G4PVPlacement(NULL, G4ThreeVector(), "World_phys", experimentalHall_log, 0, false, 0);
 
   //----- Source holder object. Used if it is a calibration source.
-  // variables related to defaults for Source Holder. Integrate with messenger class later.
-  vSourceHolderPos = G4ThreeVector(0,0,0);	// specifically, these class members should be set earlier
-  fSourceFoilThick = 7.2*um;	// default value set in detector construction messenger class
   Source.dSourceWindowThickness = fSourceFoilThick/2.;
+  if(bUseFoil)
+  {
+    G4cout << "Flag set to create Indium source foil." << G4endl;
+	// note this has not been implemented yet
+  }
+
   Source.Build();
   // place entire source holder object. Comment these two lines out if don't want to use source holder object
   source_phys = new G4PVPlacement(NULL, vSourceHolderPos, Source.sourceContainer_log, "source_container_phys",
-				experimentalHall_log, false, 0, false);	// explicitly don't check overlaps
+				experimentalHall_log, false, 0, true);	// explicitly check overlaps
+
+  G4cout << "Using geometry '" << sGeometry << "' ..." << G4endl;
+  // Note Michael Brown sets these outside any of the flags.
+//  Trap.dWindowThick = 0.150*um;
+//  Trap.dCoatingThick = 0.50*um;
+  if(sGeometry == "C")
+  {
+    // "default" thin-windows configuration. This is Michael Mendenhall's default!
+  }
+  else if(sGeometry == "thinFoil")
+  {
+    Trap.dWindowThick = 0.180*um;
+    Trap.dCoatingThick = 0.150*um;
+  }
+  else if(sGeometry == "2011/2012")
+  {	// Michael Brown's changes that form the 2011/2012 detector geometry
+    Trap.dWindowThick = 0.500*um;
+    Trap.mDecayTrapWindowMat = Mylar;
+    Trap.dInnerRadiusOfCollimator = 2.3*inch;
+    Trap.dCollimatorThick = 0.7*inch;
+    DetPackage[0].Wirechamber.ActiveRegion.dAnodeRadius = 5*um;
+    DetPackage[1].Wirechamber.ActiveRegion.dAnodeRadius = 5*um;
+    DetPackage[0].Wirechamber.ActiveRegion.dCathodeRadius = 39.1*um;
+    DetPackage[1].Wirechamber.ActiveRegion.dCathodeRadius = 39.1*um;
+  }
 
   //----- Decay Trap tube (length 3m, main tube)
   Trap.Build(experimentalHall_log, fCrinkleAngle);
 
-/*  // Michael Brown's changes that form the 2011/2012 detector geometry
-  // All the appropriate variables have been commented out everywhere else.
-  // Note: some of these values take the same value as previously declared (commented out)
-  G4double decayTrap_windowThick = 0.500*um;
-  G4Material* decayTrap_windowMaterial = Mylar;
-  G4double decayTrap_innerRadiusCollimator = 2.3*inch;
-  G4double decayTrap_collimatorThick = 0.7*inch;
-  G4double wireVol_anodeRadius = 5*um;
-  G4double wireVol_cathodeRadius = 39.1*um;
-*/  // to change back, you'll need to find EXACTLY where these are all commented out.
-
   G4RotationMatrix* EastSideRot = new G4RotationMatrix();
   EastSideRot -> rotateY(M_PI*rad);
 
-
   //----- Begin DetectorPackageConstruction. This is the frame that holds the scintillator and MWPC.
-
-  //----- Finish up detector construction. Need to place frame_container_log in experimentalHall
   G4ThreeVector frameTransEast = G4ThreeVector(0., 0., (-1)*(2.2*m));	// note: scint face position is 0 in local coord.
 									// Also there's no offset. So it's just -2.2m
   G4ThreeVector frameTransWest = G4ThreeVector(0., 0., 2.2*m);
@@ -115,17 +220,24 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
   for(int i = 0; i <= 1; i++)
   {
     DetPackage[i].Build(i);
-  }
+    G4RotationMatrix* sideFlip = new G4RotationMatrix();
+    sideFlip -> rotateZ(fDetRot*Sign(i)*rad);
+    if(i == 0)
+      sideFlip -> rotateY(M_PI*rad);
 
-  detPackage_phys[0] = new G4PVPlacement(EastSideRot, frameTransEast, DetPackage[0].container_log,
-				"DetectorPackageFrame_EAST", experimentalHall_log, false, 0, true);
-  detPackage_phys[1] = new G4PVPlacement(NULL, frameTransWest, DetPackage[0].container_log,
-				"DetectorPackageFrame_WEST", experimentalHall_log, false, 0, true);
+    G4ThreeVector sideTrans = G4ThreeVector(0.,0., Sign(i)*(2.2*m - DetPackage[i].GetScintFacePos()))
+				+ Sign(i)*vDetOffset;
 
+    detPackage_phys[i] = new G4PVPlacement(sideFlip, sideTrans, DetPackage[i].container_log,
+						Append(i, "DetectorPackageFrame_"), experimentalHall_log, false, 0, true);
 
-  // set user limits in specific volumes
-  for(int i = 0; i <= 1; i++)
-  {
+    // store all these mwpc coordinate transformations so the MWPCField can be calculated later
+    DetPackage[i].Wirechamber.fMyRotation = sideFlip;
+    DetPackage[i].Wirechamber.vMyTranslation = (*sideFlip)(DetPackage[i].Wirechamber.vMyTranslation);
+    DetPackage[i].Wirechamber.vMyTranslation += sideTrans;
+    DetPackage[i].Wirechamber.dE0 = 2700*volt;
+
+    // set some user limits in particular volumes
     Trap.decayTrapWin_log[i] -> SetUserLimits(UserSolidLimits);
     DetPackage[i].Wirechamber.container_log -> SetUserLimits(UserGasLimits);
     DetPackage[i].Wirechamber.winIn_log -> SetUserLimits(UserSolidLimits);
@@ -214,30 +326,36 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 */
 
 
-  ConstructGlobalField();			// make magnetic and EM fields.
-
-  G4double mwpc_fieldE0 = 2700*volt;            // gets passed to MWPC fields and used in SetPotential
+//  G4double mwpc_fieldE0 = 2700*volt;            // gets passed to MWPC fields and used in SetPotential
   // EastSideRot is already made
-  G4double mwpc_PosZ = -DetPackage[0].Wirechamber.GetWidth() - DetPackage[0].dBackWinFrameThick
+/*  G4double mwpc_PosZ = -DetPackage[0].Wirechamber.GetWidth() - DetPackage[0].dBackWinFrameThick
 			- (DetPackage[0].Scint.GetWidth()/2. + DetPackage[0].Scint.GetScintFacePos());
 
 								// this 2.2*m is frameTransWest
   G4ThreeVector sideTransMWPCEast = G4ThreeVector(0,0, (-1)*(2.2*m + mwpc_PosZ));
   G4ThreeVector sideTransMWPCWest = G4ThreeVector(0,0, 2.2*m + mwpc_PosZ);
-  G4ThreeVector mwpc_activeRegionTrans = G4ThreeVector(0, 0, 
+  G4ThreeVector mwpc_activeRegionTrans = G4ThreeVector(0, 0,
 		(DetPackage[0].Wirechamber.dEntranceToCathodes - DetPackage[0].Wirechamber.dExitToCathodes)/2.);
 
   G4ThreeVector East_EMFieldLocation = mwpc_activeRegionTrans + sideTransMWPCEast;
   G4ThreeVector West_EMFieldLocation = mwpc_activeRegionTrans + sideTransMWPCWest;
+*/
+
+  // make global magnetic field and wirechamber EM fields.
+  ConstructGlobalField();
 
   ConstructEastMWPCField(DetPackage[0].Wirechamber.ActiveRegion.dWireSpacing,
 			DetPackage[0].Wirechamber.ActiveRegion.dPlaneSpacing,
 			DetPackage[0].Wirechamber.ActiveRegion.dAnodeRadius,
-			mwpc_fieldE0, EastSideRot, East_EMFieldLocation);
+			DetPackage[0].Wirechamber.dE0,
+			DetPackage[0].Wirechamber.fMyRotation,
+			DetPackage[0].Wirechamber.vMyTranslation);
   ConstructWestMWPCField(DetPackage[1].Wirechamber.ActiveRegion.dWireSpacing,
 			DetPackage[1].Wirechamber.ActiveRegion.dPlaneSpacing,
 			DetPackage[1].Wirechamber.ActiveRegion.dAnodeRadius,
-			mwpc_fieldE0, NULL, West_EMFieldLocation);
+			DetPackage[1].Wirechamber.dE0,
+			DetPackage[1].Wirechamber.fMyRotation,
+			DetPackage[1].Wirechamber.vMyTranslation);
 
 
   return experimentalHall_phys;

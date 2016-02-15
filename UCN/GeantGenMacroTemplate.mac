@@ -1,0 +1,41 @@
+######### ucnG4_prod macro template ##########
+
+# set verbosity levels
+/run/verbose 2
+/event/verbose 0
+/tracking/verbose 0
+
+# set output file
+/files/output %(outfile)s
+
+# run number
+/run/runNumber %(run_num)i
+
+# spectrometer decay trap geometry name
+/detector/geometry %(geometry)s
+# detector vacuum pressure
+/detector/vacuum %(vacuum)s
+
+/detector/sourceholderpos %(sourceholderpos)s
+
+# set physics list
+/phys/physlist Livermore
+
+# insert extra pre-initialization commands here
+%(extra_cmds)s
+
+/run/initialize
+
+# command for loading field map
+%(fieldmapcmd)s
+
+# insert extra post-initialization commands here
+%(extra_post_cmds)s
+
+# file for events input
+/generator/evtfile %(evtfile)s
+
+/run/beamOn %(nevt)i
+
+# optional visualization commands
+%(vis_cmd)s

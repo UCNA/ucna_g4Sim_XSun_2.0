@@ -15,6 +15,9 @@ public:
   G4double dInnerRadiusOfTrap;
   G4double dTubeWallThickness;
   G4double dInnerRadiusOfCollimator;
+
+  G4double dCollimatorThick;	// Michael Brown's addition. Has been defaulted to M.M's 0.8*inch.
+				// But in the 2011/2012 geometry gets set to 0.7*inch
   G4Material* mTubeMat;
   G4Material* mCollimatorMat;
   G4Material* mDecayTrapWindowMat;

@@ -46,7 +46,7 @@ target_link_libraries(ucn ${Geant4_LIBRARIES} ${ROOT_LIBRARIES} )
 # relies on these scripts being in the current working directory.
 #
 set(AnaEx02_SCRIPTS
-    init_vis.mac vis.mac
+    init_vis.mac vis.mac geantgen.mac
   )
 
 foreach(_script ${AnaEx02_SCRIPTS})

@@ -125,3 +125,22 @@ string MaterialUser::Append(int i, string str)
 //  return newString.str();
 }
 
+int MaterialUser::Sign(int j)
+{
+  int sign = 2;
+
+  if(j == 0)
+  {
+    sign = -1;
+  }
+  else if(j == 1)
+  {
+    sign = 1;
+  }
+  else
+  {
+    cout << "Invalid argument passed to Sign. " << endl;
+  }
+
+  return sign;
+}

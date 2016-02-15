@@ -32,11 +32,11 @@ public:
 
   G4RotationMatrix* fMyRotation;	// rotation from global frame to local coordinates
   G4ThreeVector vMyTranslation;		// translation from global coordinates to center of anode plane
+  G4double dE0;				// field scaling constant. Needed here to get passed to MWPCField later
 
 protected:
   G4double dMWPCContainerHalf_Z;	// half width of wirechamber
-  G4double dE0;				// field scaling constant. Pretty sure we don't need
-					// since I plan on implementing the field separately in DetectorConstruction
+
 
 
 };
