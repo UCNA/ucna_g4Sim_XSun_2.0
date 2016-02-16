@@ -3,3 +3,7 @@ Since it hasn't used Kevin's script yet to compile.
 
 cmake -DGeant4_DIR=/home/xuansun/geant4/geant4-10.01.p02-install/lib/Geant4-10.1.2 ~/Documents/Caltech/UCNA_Sim/ucna_g4Sim_XSun_2.0/UCN/
 
+
+And on my desktop it is:
+
+cmake -DGeant4_DIR=/home/xuansun/geant4/geant4.10.1.p02-install/lib/Geant4-10.1.2 ~/Documents/ucna_g4Sim_XSun_2.0-master/UCN/

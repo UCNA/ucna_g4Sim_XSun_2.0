@@ -1,0 +1,10 @@
+Things to check when you want to run a simulation.
+
+	1) Get PrimaryGeneratorAction.cc and change the INPUT_PTCL_FILE to be
+	the name of the particle file that you're using.
+
+	2) In PrimaryGeneratorAction.cc and EventAction.cc change the OUTPUT_FILE
+	name to be the same thing for both files!
+
+	3) In UCN/EventGenTools/ run MC_EventGen.cc to create the initial particle
+	kinematics file. Make sure it's stored in the /G4Sim... folder. 

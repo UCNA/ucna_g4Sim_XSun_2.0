@@ -18,6 +18,7 @@
 using   namespace       std;
 
 #define	OUTPUT_FILE	"UCNASimOutput.txt"
+#define INPUT_PTCL_FILE	"initPtclInfo_1.txt"
 
 PrimaryGeneratorAction::PrimaryGeneratorAction(DetectorConstruction* myDC)
 : G4VUserPrimaryGeneratorAction(),
@@ -32,7 +33,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction(DetectorConstruction* myDC)
 
   G4String base = getenv("UCNA_BASE");
   G4String path = base + "UCN/EventGenTools/G4Sim_Ptcl_Input_Files/";
-  G4String file = path + "initPtclInfo_1.txt";
+  G4String file = path + INPUT_PTCL_FILE;
 
   G4cout << "------> Path to primaries file: " << path << G4endl;
   G4cout << "Fetching initial particles info from file name: " << file << G4endl;

@@ -15,7 +15,7 @@
 #include <cmath>
 using   namespace       std;
 
-#define	OUTPUT_FILE	"UCNASimOutput.txt"
+//#define	OUTPUT_FILE	"UCNASimOutput.txt"
 
 RunAction::RunAction()
 : G4UserRunAction()

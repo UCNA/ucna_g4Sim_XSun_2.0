@@ -205,6 +205,8 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
     DetPackage[0].Wirechamber.ActiveRegion.dCathodeRadius = 39.1*um;
     DetPackage[1].Wirechamber.ActiveRegion.dCathodeRadius = 39.1*um;
   }
+  else
+    G4cout << "WARNING: PASSED GEOMETRY FLAG DOESN'T MATCH ANY PRE-PROGRAMMED GEOMETRY!" << G4endl;
 
   //----- Decay Trap tube (length 3m, main tube)
   Trap.Build(experimentalHall_log, fCrinkleAngle);

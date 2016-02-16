@@ -1,0 +1,8 @@
+This code uses the data from my (Xuan) simulation called UCNASimOutput.txt
+and pipes it into TTree variables/branches by running it through ttree.cc.
+
+The output file is called xuan_analyzed.root.
+
+However, when being fed into Michael Mendenhall's analyzer, it will be named analyzed_#.root.
+The number chosen will be recorded here and will be modifed rarely.
+It will be a personal flag to remind myself that analyzed_#.root actually means xuan_analyzed.root.
